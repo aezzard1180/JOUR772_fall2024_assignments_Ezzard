@@ -1,0 +1,134 @@
+---
+title: "lab_02"
+author: "Derek Willis"
+adapted by: "Daniel Trielli"
+date: "2024-05-23"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Load libraries and establish settings
+
+```{r}
+# Turn off scientific notation
+options(scipen=999)
+
+# Load the tidyverse. If you have not installed the tidyverse already, remove the # from the next line and run it first.  
+# install.packages('tidyverse')
+library(tidyverse)
+library(lubridate)
+```
+
+## Load Data
+
+Let's keep working with the UMD courses and Maryland campaign expense data we used in the pre_lab.
+
+```{r}
+umd_courses <- read_rds("data/umd_courses.rds")
+maryland_expenses <- read_csv("data/maryland_expenses.csv")
+```
+
+## Answer questions
+
+### **Q1** How many departments have offered the courses with "Climate" in the title and at least one seat? Which department has offered the most?
+
+```{r}
+umd_courses |>
+  filter(str_detect(title, "Climate")) |>
+   group_by(title, "Climate", department) |>
+  filter(seats >= 1) |>
+  arrange(title, "Climate", department) |>
+  arrange(desc(department))
+  
+
+```
+
+**A1** 26 departments have offered a course with the word climate in the name with at least 1 seat. Atmospheric and Oceanic Science has offered the most classes. (I counted 68)
+
+------------------------------------------------------------------------
+
+### **Q2** Which departments have the most courses in the Fall 2023 term? And which departments in that term have at least one syllabus posted? How are the top departments different in each result? Where is Journalism in those results?
+
+```{r}
+umd_courses |>
+  filter(str_detect(term, "202308")) |>
+   group_by(department) |>
+  filter(syllabus_count >= 1) |>
+  arrange(syllabus_count, department)
+  
+umd_courses |>
+  filter(str_detect(term, "202308")) |>
+  group_by(department) |>
+  summarise(
+    count_classes = n(),
+  ) |>
+  arrange(desc(count_classes))
+
+```
+
+**A2** The departments with the most classes in Fall 2023 are Business and Management; School of Music; English; Teaching and Learning, Policy and Leadership; Information studies; Journalism; History; and Computer Science. Journalism is 6th at 110 classes. Out of each department's classes, Business and Management has 26; Computer science has 14; English has 3; History has 15; Information Studies has 20; Journalism has 7; School of Music has 31; and Teaching and Learning, Policy and Leadership has 2. Journalism falls lower on this list since only 7 classes out of the 110 offered posted at least 1 syllabus.
+
+------------------------------------------------------------------------
+
+### **Q3** Using the Maryland campaign expenses data, change the datatype of the expenditure_date column so that it is a date and not a chr. Then create a new column for the month based on expenditure_date. Then write code that shows total amount spent each month by Wes Moore's committee (you'll need to search the data to find the exact name). Write a sentence describing the pattern of spending over time.
+
+```{r}
+maryland_expenses <- maryland_expenses |> mutate(expenditure_date=mdy(expenditure_date))
+
+head(maryland_expenses)
+
+maryland_expenses |>
+  mutate(month = floor_date(expenditure_date, "month")) |>
+  group_by(month, committee_name) |>
+  summarise(total_amount = sum(amount)) |>
+  arrange(desc(total_amount))
+```
+
+**A3** Over time the spending decreased.
+
+------------------------------------------------------------------------
+
+### **Q4** Using case_when(), create a column in the Maryland expenses data called `spending_location` indicating whether each record indicated money spent in Maryland or outside Maryland. For records that are in Maryland, make the new column's value "In-state" and for the others, make it "Out of state". Then write code that shows the total amount of money spent in each category and describe the results. You can do this in one statement or break it up into two statements (saving the new column to your dataframe).
+
+```{r}
+maryland_expenses <- maryland_expenses |>
+  mutate(
+    spending_location = case_when(
+      str_detect(address, " Maryland ") ~ "In-state",
+        str_detect(address, " California ") ~ "Out of state",
+        str_detect(address, " Washington ") ~ "Out of state",
+        str_detect(address, " Louisiana ") ~ "Out of State",
+        str_detect(address, " Florida ") ~ "Out of State",
+        str_detect(address, " North Carolina ") ~ "Out of State",
+        str_detect(address, " Massachusetts ") ~ "Out of State",
+        str_detect(address, " West Virginia ") ~ "Out of State",
+        str_detect(address, " Virginia ") ~ "Out of State",
+        .default = NA
+      )
+  )
+maryland_expenses |>
+  group_by(spending_location) |>
+  summarize(total = sum(amount)) |>
+  arrange(desc(total))
+```
+
+**A4** The case_when function added a new table on the maryland_expenses dataset. For the second part I'm not entirely sure why out of state is listed twice, but In-state spending is the most at about \$77.7 million compared to out of state spending which is at \$33.2 million when the two are added up.
+
+------------------------------------------------------------------------
+
+### **Q5** Choose your own adventure: using either the UMD courses or campaign expenses data, ask and answer a question that is different than the previous ones. You can use one of the ones you provided in the pre_lab.
+
+```{r}
+maryland_expenses |>
+  filter(str_detect(expense_category, "Media")) |>
+  filter(str_detect(address, "Maryland")) |>
+   group_by(address, expense_category) |>
+  summarise(total_amount = sum(amount)) |>
+  arrange(desc(total_amount))
+
+```
+
+**A5** The question from the pre_lab that I wanted to answer was my first one which wanted to look at the amount of money Maryland as a whole spent on media alone. I couldn't figure out how to get the data to show me Maryland in total, but what I found was still interesting. From this it looks like the address, 210 W Pennsylvania Ave, Towson Maryland 21204, spends the most on media out of the whole state. When I looked up the address in the maryland_expenses dataset, the address belongs to Mentzer Media, which is a media advertising company.
