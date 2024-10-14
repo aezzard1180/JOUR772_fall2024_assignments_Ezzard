@@ -74,7 +74,7 @@ summarize(calls = n()) |>
 
 Q3. Now let's look at locations. Which ones have the most calls? How would you describe them (feel free to search for more information on them)? Is there anything about the structure of the original data that might make you less confident in the counts by location or date?
 
-A3. 4540 Silver Spring Rd has the most calls. From google, the address doesn't look as if the house in a lower income neighborhood. The house was also recently sold for almost \$435,000. The next two locations are police stations. The last location with the highest amount is in a median income area. The days and times copy which make me less confident in the counts. For the 4540 Silver Spring Rd address, there were two indentical calls on August 2nd, 4th,14th and December 20th.
+A3. 4540 Silver Spring Rd has the most calls. From Google, the address doesn't look as if the house in a lower income neighborhood. The house was also recently sold for almost \$435,000. The next two locations are police stations. The last location with the highest amount is in a median income area. The days and times copy which make me less confident in the counts. For the 4540 Silver Spring Rd address, there were two indentical calls on August 2nd, 4th,14th and December 20th.
 
 ```{r}
 emergency_calls |> 
@@ -85,4 +85,4 @@ emergency_calls |>
 
 Q4. What's the best story idea or question you've seen as a result of the work you've done in this lab?
 
-A4.
+A4. One big question that I have after this lab is why there were 36 emergency calls at 4540 Silver Spring Rd. If all of those calls really are for overdoses, why haven't the people staying there gotten help for whoever keeps overdosing? I did see that about 4 calls were included twice in the data set, but that only brings the number down to 32 if those duplicates are removed, which is still a high number for one address.
