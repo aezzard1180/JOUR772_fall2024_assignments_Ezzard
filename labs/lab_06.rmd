@@ -29,31 +29,31 @@ This week we'll be combining and joining data to make it more useful and to ask 
 
 ```{r}
 # load and combine the call data from those three counties
-allegany_911 <- read.csv('allegany_911.csv')
-baltimore_911 <- read.csv('baltimore_911.csv')
-carroll_911 <- read.csv('carroll_911.csv')
-cecil_911 <- read.csv('cecil_911.csv')
-maryland_zcta <- read.csv('maryland_zcta.csv')
+allegany_911 <- read.csv('allegany_911.csv') |> clean_names()
+baltimore_911 <- read.csv('baltimore_911.csv') |> clean_names()
+carroll_911 <- read.csv('carroll_911.csv') |> clean_names()
+cecil_911 <- read.csv('cecil_911.csv') |> clean_names()
+maryland_zcta <- read.csv('maryland_zcta.csv') |> clean_names()
 ```
 
 Then we'll join some demographic data with Baltimore City 911 calls and ask some questions of that. For that, you'll need to load the Baltimore City 911 data and the ZCTA demographic data, and join them based on the zip code. Remember, the zip codes in both dataframes must be the same datatype (and should be characters). You should start with your Baltimore 911 dataframe in creating your join.
 
 ```{r}
 # load and join the Baltimore-related data
-maryland_zcta <- maryland_zcta |> mutate(ZCTA5N = as.character(ZCTA5N))
+maryland_zcta <- maryland_zcta |> mutate(zcta5n = as.character(zcta5n))
 baltimore_911 <- baltimore_911 |> mutate(zip_code = as.character(zip_code))
 
-baltimore_911_with_zcta_demographic <- maryland_zcta |> left_join(baltimore_911, join_by(ZCTA5N == zip_code))  
+baltimore_911_with_zcta_demographic <- maryland_zcta |> right_join(baltimore_911, join_by(zcta5n == zip_code))  
 ```
 
 ## Answer questions
 
 ### Q1. Let's start with our data from Allegany, Cecil and Carroll counties. Write code to generate a dataframe that shows the total number of calls for each county. What's the order of counties from most calls to least?
 
-A1. Carroll County had the most calls, then Cecil County then Allegany County.
+A1. Carroll County had the most calls, then Cecil County, then Allegany County.
 
 ```{r}
-carroll_911 <- carroll_911 |> rename(date = Date) |> rename(location = Location)
+carroll_911 <- carroll_911 |> rename(Date = date) |> rename(Location = location)
 
 allegany_cecil_carroll_911_combined <- bind_rows(list(allegany_911, cecil_911, carroll_911))
 
@@ -67,7 +67,7 @@ group_by(county) |>
 
 Then calculate the most calls per county and location. Which location had the most calls - where and what is that location?
 
-A2. At the beginning of the year, Allegany County had the least amount of calls, but as the year progressed they recieved more calls, similar to the amount that was received in the other two counties. 314 Grove Neck RD, Earleville, MD in Cecil County had the most calls.
+A2. At the beginning and towards the middle of the year, Allegany County had the least amount of calls, but towards the end of the year they recieved the most calls compared to the other counties, though they were similar in the amount of calls received. At first the data showed that 314 Grove Neck RD, Earleville, MD in Cecil County had the most calls, but now an unknown address in Carroll County had the most calls.
 
 ```{r}
 allegany_cecil_carroll_911_combined <- allegany_cecil_carroll_911_combined |>
@@ -91,18 +91,23 @@ Add a column to your code that calculates the number of calls per 1,000 people f
 
 Which zip code has the highest rate of calls per 1,000 people? Find the neighborhoods in that zip code that are listed in the data - you can use group_by or distinct to do this. What are some of those neighborhoods?
 
-A3.
+A3. The zipcode with the highest number of calls is 21217. Some of the neighborhoods in this zipcode include Upton, Penn North, Druid Heights and Sandtown-Winchester.
 
 ```{r}
 baltimore_911_with_zcta_demographic |> 
-  filter(PCT_UNDER_18 > 75.0) |>
-  group_by(ZCTA5N, POPULATION, PCT_UNDER_18) |>
+  filter(pct_under_18 > 75.0) |>
+  group_by(zcta5n, population, pct_under_18) |>
   summarize(total=n()) |> 
-  mutate(calls_per_capita = (total/POPULATION)*1000) |>
+  mutate(calls_per_capita = (total/population)*1000) |>
   arrange(desc(calls_per_capita))
 
 baltimore_911_with_zcta_demographic |> 
-  group_by(ZCTA5N, neighborhood) |>
+  group_by(zcta5n, neighborhood) |>
+  summarize(total=n()) |>
+  arrange(desc(total))
+
+baltimore_911_with_zcta_demographic |>
+  group_by(zcta5n) |>
   summarize(total=n()) |>
   arrange(desc(total))
 
@@ -110,7 +115,11 @@ baltimore_911_with_zcta_demographic |>
 
 ### Q4. Choose your own adventure: I want you to come up with a question you could ask of the Baltimore City data that combines both the calls and the demographic information. You must use both demographics and the overdose call data in your work.
 
-A4:
+A4: Looking at the Baltimore 911 data combined with the maryland demographic data, I'm interested in finding which district has the most calls compared to the district with the least amount of calls. The west district has the most amount of calls at 762 compared to the north district which had 427 calls. This makes sense because the zipcode 21217, which has the most calls, is primarily located in the west district.
 
 ```{r}
+baltimore_911_with_zcta_demographic |>
+  group_by(district) |>
+  summarize(total=n()) |>
+  arrange(desc(total)) 
 ```
