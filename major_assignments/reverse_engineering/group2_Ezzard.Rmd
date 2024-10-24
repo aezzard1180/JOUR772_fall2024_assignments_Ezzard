@@ -18,7 +18,7 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ## Introduction
 
-In this notebook, we are reverse engineering the story, [STORY NAME](STORY%20URL)
+In this notebook, we are reverse engineering the story, [**Nearly 250 women have been fatally shot by police since 2015 (Washington Post)**](https://www.washingtonpost.com/graphics/2020/investigations/police-shootings-women/).
 
 ## Load libraries
 
@@ -39,6 +39,7 @@ In this section, describe the source of the data, write a basic data dictionary 
 fatal_police_shootings_agencies <- read.csv('fatal-police-shootings-agencies.csv') |> clean_names()
 
 fatal_police_shootings_data <- read.csv('fatal-police-shootings-data.csv') |> clean_names()
+
 # Path to data should be loaded from folder "data" i.e. read_csv("data/name_of_data.csv")
 
 # Clean required data and prepare for analysis if needed. 
@@ -75,31 +76,69 @@ fatal_police_shootings_data |>
   arrange(desc(total)) 
 
 # Display results of code below this codeblock
+fatal_police_shootings_data
 
 ```
 
 ### Sentence 2
 
--   **Sentence text**: [Paste in sentence to engineer here]
--   **Analysis summary**: [Write up two to three sentences describing the results of your analysis. Were you able to confirm the finding? If not, why not?]
+-   **Sentence text**: About 31%, or 77 of the 247 women fatally shot by police since 2015 had mental health issues, compared to 22% of the 5,362 men killed.
+-   **Analysis summary**: Our data was updated recently, so the numbers aren't going to match the data from the article. Currently, the total of women fatally shot since 2015 is 358 and the men is 7,613. The percentage of women fatally shot while displaying mental illness went up to 32%, which is 115 out of the 358 women fatally shot in total. For the men, the percentage of them displaying mental illness went down to 20% or 1,555 out of the 7,613 men fatally shot in total.
 
 ```{r}
 # Put code to reverse engineer sentence here
+fatal_police_shootings_data |>
+  group_by(signs_of_mental_illness, gender) |> 
+  summarize(total=n())
+
+total_shootings <- fatal_police_shootings_data |>
+  group_by(gender) |> 
+  summarize(total=n())
+
+total_shootings_mi <- fatal_police_shootings_data |>
+  filter(signs_of_mental_illness == 'True') |>
+  group_by(gender) |> 
+  summarize(total_mi=n())
+
+shootings_total_and_mi <- total_shootings |> left_join(total_shootings_mi)
+
+shootings_total_and_mi <- shootings_total_and_mi|> 
+  mutate(percent_of_mental_illness = (total_mi/total)*100)
+  
+
+fatal_police_shootings_data |>
+  group_by(gender) |>
+  summarize(total=n()) |>
+  arrange(desc(total))
 
 # Display results of code below this codeblock
+
+shootings_total_and_mi
 
 ```
 
 ### Sentence 3
 
--   **Sentence text**: [Paste in sentence to engineer here]
--   **Analysis summary**: [Write up two to three sentences describing the results of your analysis. Were you able to confirm the finding? If not, why not?]
+-   **Sentence text**: Since 2015, police have killed 26 unarmed women, including Taylor. Of those, 14 were White, seven were Black, four were Hispanic and one's race was unknown.
+-   **Analysis summary**: As previously stated before, our data was recently updated, so the data in the article will not match the current data. Since 2015, police have killed 35 unarmed women. Of those, 15 were White, six were Hispanic, seven were still Black, and seven women have an unknown race.
 
 ```{r}
 # Put code to reverse engineer sentence here
+total_unarmed <- fatal_police_shootings_data |>
+  filter(str_detect(armed, "unarmed")) |>
+  group_by(gender) |>
+  summarize(total=n()) |>
+  arrange(desc(gender))
+
+total_unarmed_with_race <- fatal_police_shootings_data |>
+  filter(str_detect(armed, "unarmed")) |>
+  group_by(armed, gender,race) |>
+  summarize(total=n()) |>
+  arrange((gender))
 
 # Display results of code below this codeblock
-
+total_unarmed_with_race
+total_unarmed
 ```
 
 ### Sentence 4
