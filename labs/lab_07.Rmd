@@ -26,6 +26,8 @@ options(scipen=999)
 # Load the tidyverse.
 library(tidyverse)
 library(tidycensus)
+library(janitor)
+library(lubridate)
 ```
 
 ## Setup Census API
@@ -45,6 +47,7 @@ You'll also need to load the list of American Community Survey variables from th
 
 ```{r}
 v21 <- load_variables(2021, "acs5", cache=TRUE)
+v22 <- load_variables(2022, "acs5", cache=TRUE)
 ```
 
 ## Answer questions
@@ -52,20 +55,25 @@ v21 <- load_variables(2021, "acs5", cache=TRUE)
 #### **Q1** What is the Maryland jurisdiction with the lowest median age, according to the ACS 2021 5-year estimates? You will need to find the variable for median age first (search for it in the 'concept' column at the data frame we just created).
 
 ```{r}
-
+md_21 <- get_acs(geography = "county",
+                 variables = c(medage = "B01002_001"), 
+                 state = "MD",
+                 year = 2021) 
+md_21 |> arrange(estimate)
 ```
 
-**Answer here:**
+**Answer here:** The variable code that I used was for Median Age by Sex: Total. From that, the jurisdiction with the lowest median age is Baltimore City.
 
 ------------------------------------------------------------------------
 
 #### **Q2** Which Maryland counties have a median age of at least 50? You can use the dataframe you just made to answer this, but you must write code to display only those counties with a median age of at least 50. **A2**
 
 ```{r}
-
+md_21 |> 
+  filter(estimate >= 50)
 ```
 
-**Answer here:**
+**Answer here:** Talbot and Worcester County have a median age of at least 50.
 
 ------------------------------------------------------------------------
 
@@ -81,22 +89,52 @@ v21 <- load_variables(2021, "acs5", cache=TRUE)
 Which zip code has the highest rate of calls? Which has the lowest?
 
 ```{r}
+montgomery_2022_overdoses <- read.csv('montgomery_2022_overdoses.csv') |> clean_names()
+
+montgomery_911 <- montgomery_2022_overdoses |>
+  group_by(close_type, zip) |>
+  summarize(total=n())
+
+md_19 <- get_acs(geography = "zcta",
+                 variables = c(over18 = "B09021_001"), 
+                 state = "MD",
+                 year = 2019) 
+
+montgomery_2022_overdoses <- read.csv('montgomery_2022_overdoses.csv') |> clean_names()
+
+montgomery_911 <- montgomery_2022_overdoses |>
+  group_by(close_type, zip) |>
+  summarize(total=n())
+
+montgomery_911 <- montgomery_911 |> mutate(zip = as.character(zip))
+
+montgomery_911_with_md_19 <- montgomery_911 |> left_join(md_19, join_by(zip == GEOID)) 
+
+montgomery_911_with_md_19 <- montgomery_911_with_md_19 |> 
+  mutate(calls_per_capita = (total/estimate)*1000) |>
+  arrange(desc(calls_per_capita))
+
+montgomery_911_with_md_19
 ```
 
-**Answer here:**
+**Answer here:** The zipcode with the highest rate is 20877. The lowest zipcode is 20903.
 
 ------------------------------------------------------------------------
 
 #### **Q4** Using [CensusReporter.org](https://censusreporter.org/), examine the zip codes on Q3 with the highest and lowest rates and compare and contrast their demographic profiles. Is there a story here?
 
-**Answer here:**
+**Answer here:** Both of them have majority Hispanic population. Everything else though is pretty similar with a small fluctuations. I think there is a story here as to why the population is showing that it's majority Hispanic, when usually they fall in third place behind White and Black.
 
 ------------------------------------------------------------------------
 
 #### **Q5** Go back to your joined dataframe from Q3 and add two more columns representing the minimum and maximum populations based on the estimate and margin of error, then calculate per capita rates for each. Do you get the same two zip codes for the highest and lowest as you did before? Does that give you more or less confidence in your answers to Q3?
 
 ```{r}
-
+montgomery_911_with_md_19 |> 
+  mutate(max_population = max(estimate, moe))|>
+  mutate(min_population = min(estimate, moe)) |>
+  mutate(calls_per_capita_min_and_max = (min_population/max_population)*1000) |>
+  arrange(desc(estimate))
 ```
 
-**Answer here:**
+**Answer here:** No, I did not get the same zipcode. This time the zipcode was 20850.
