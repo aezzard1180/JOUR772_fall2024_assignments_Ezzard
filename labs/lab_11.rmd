@@ -1,0 +1,107 @@
+---
+title: "lab_12"
+author: "Mitchell Hang"
+date: "2023-05-04"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## You will need
+
+-   tidytext and our usual libraries
+
+## Load libraries and establish settings
+
+**Task** Create a codeblock and load appropriate packages and settings for this lab.
+
+```{r}
+# Turn off scientific notation
+options(scipen=999)
+
+# Load the tidyverse.
+library(tidytext)
+library(tidyverse)
+library(dplyr)
+library(janitor)
+library(lubridate)
+library(rvest)
+```
+
+## Questions
+
+##### **Q1.** You've been assigned to report a story about the leading reasons that Maryland attorneys get sanctioned by the state for misconduct. The state [publishes lists of sanctions](https://www.courts.state.md.us/attygrievance/sanctions) that contain a short text description about the situation. Load the CSV file in the data folder containing records from fiscal year 2011 onwards. Make a list of unique words from the text column, then following the example in the pre_lab, remove common "stop words" from that list and create a list of the top 10 words containing the percentage of occurrences each word represents. What's the leading word in that answer and, broadly, what do you think the top 10 words describe?
+
+```{r}
+#Load the data
+md_attorney_sanctions <- read_csv("data/md_attorney_sanctions.csv")
+```
+
+```{r}
+#Create list of unique words
+unique_md_attorney_sanctions <- md_attorney_sanctions |> select(text) |>
+  unnest_tokens(word, text)
+View(unique_md_attorney_sanctions)
+```
+
+```{r}
+#Load stop words
+data("stop_words")
+```
+
+```{r}
+#Remove stop words from unique words list
+unique_md_attorney_sanctions |>
+  anti_join(stop_words) |>
+  group_by(word) |>
+  tally(sort=TRUE) |>
+  mutate(percent = (n/sum(n))*100) |>
+  top_n(10)
+```
+
+**A1.** The top word in the list is "failing." The top 10 words describe the common words in sanctions against attorneys.
+
+------------------------------------------------------------------------
+
+##### **Q2.** Let's move beyond single words to phrases. Make a list of the top 10 three-word phrases, called trigrams, based on the example from the pre_lab (you'll need to modify the example code to do this). What's the top trigram and how often does it appear? What does that phrase mean in legal terms?
+
+```{r}
+# Check the task 12 on Pre-lab 11 to see if you can use that code
+top_10_trigram_sanctions <- md_attorney_sanctions |>
+  unnest_tokens(trigram, text, token = "ngrams", n = 3) |>
+  separate(trigram, c("word1", "word2", "word3"), sep = " ") |>
+  filter(!word1 %in% stop_words$word) |>
+  filter(!word2 %in% stop_words$word) |>
+  filter(!word3 %in% stop_words$word) |>
+  mutate(trigram = paste(word1, word2, word3, sep=" ")) |>
+  group_by(trigram) |>
+  tally(sort=TRUE) |>
+  mutate(percent = (n/sum(n))*100) |>
+  top_n(10)
+
+top_10_trigram_sanctions
+```
+
+**A2.** The top trigram is "attorney trust account" and it appears 343 times. In legal terms, an attorney trust account is just an account for lawyers to hold their clients' money.
+
+------------------------------------------------------------------------
+
+##### **Q3.** Let's drop back down to more traditional text analysis - take the top trigram from Q2 and write code to see how many times it occurs in the text column in each fiscal year. What do you think the answer produced by your code suggests? What else could you do to try and clarify the most important reasons attorneys get sanctioned?
+
+```{r}
+top_trigram_frequency <- md_attorney_sanctions |>
+  unnest_tokens(trigram, text, token = "ngrams", n = 3) |>
+  separate(trigram, c("word1", "word2", "word3"), sep = " ") |>
+  filter(!word1 %in% stop_words$word) |>
+  filter(!word2 %in% stop_words$word) |>
+  filter(!word3 %in% stop_words$word) |>
+  mutate(trigram = paste(word1, word2, word3, sep=" ")) |>
+  filter(str_detect(trigram, "attorney trust account")) |>
+  group_by(trigram, fiscal_year) |>
+  tally(sort=TRUE) |>
+  top_n(10)
+```
+
+**A3.** I think that the answer produced by my code shows that since the pandemic, the number of lawyers that have been sanctioned relating to "attorney trust accounts" has doubled. In the fiscal year for 2021, the number of times the phrase popped up was 86 and for fiscal year 2022 it was 89. For fiscal year 2020, the number of times the phrase popped up was 44. Another way to clarify the most important reasons attorneys get sanctioned could be to add a fourth word to the trigram to see the reasoning associated with the trust accounts. In the top 10 trigram sanctions dataframe, words like "fraud" and "dishonesty" were within that list and may clarify what the attorneys are doing with the accounts.
